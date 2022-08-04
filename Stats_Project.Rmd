@@ -1,0 +1,280 @@
+---
+title: "VARIATION OF SUGAR CONTENT IN STARBUCKS DRINKS"
+author: "Hidaya Patel"
+date: "4/18/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction 
+
+Coffee is one of the most well-known beverages and has become a staple of daily human consumption across the world. According to statistics Canada, 80% of Canadians are coffee lovers. Starbucks is one of the highly favourable cafe companies across the world and in Canada. I, myself, am a huge fan of coffee and Starbucks is one of my favourites which is why I decided to choose its data.
+
+There is so much to coffee than it being beans. Starbucks creates their coffee using fresh beans extracted and exported from various regions around the world. However, a lot of people just drink coffee for the sake of getting that caffeine rush, but very few understand the sugar intake along with it. Many people do not understand the health risks that comes with coffee consumption. Regardless, coffee is more than a refreshment. It's a memory, an anticipation, a lengthy time of inconspicuous delight woven into our existence. 
+
+
+# Hypothesis/Question
+
+I am going to regress sugar content against a variety of independent factors to see which nutritional characteristics had the most impact on estimating the quantity of sugar in a Starbucks drinks.
+
+# Data Collection
+
+The dataset I chose is recorded by Starbucks and uploaded in Kaggle. The nutritional information for Starbucks' drink menu items is included in this dataset. All nutritional data for beverages is based on a 12-ounce serving size. It has:
+
+  - **242 rows**
+  - **8 variables** 
+
+The dependent variable here is the Sugar (in grams) against the independent variables. 
+
+
+# Variables 
+
+The dataset has 8 variables and below I have given a description of the variables.
+
+Beverage_category	:- A particular drink category(Eg: Classic Espresso Drinks, Coffee)
+
+Calories :- It represents the calories count in the drinks
+
+Total Fat (g)	:- It represents the Total fat count in the drinks in grams
+
+Trans Fat (g) :- It represents the Trans fat count in the drinks in grams
+
+Saturated Fat (g)	:- It represents the Saturated fat count in the drinks in grams
+
+Dietary Fibre (g)	:- It represents the Dietry Fibres count in the drinks in grams
+
+Sugars (g) :- It represents the Sugar count in the drinks in grams
+
+Caffeine (mg) :- It represents the Caffeine count in the drinks in milligrams
+
+# Data Exploration
+                                      
+```{r}
+# Using the required libraries
+
+library(rattle)
+library(rpart)
+library(readr)
+library(caret)
+
+# Importing the data 
+SBUX_Data <- read.csv("/Users/Hidaya/Desktop/Starbucks.csv")
+
+# Dimensions of the data 
+dim(SBUX_Data)
+```
+
+```{r}
+head(SBUX_Data)
+```
+
+## Checking class of each column in the observations 
+
+```{r}
+class(SBUX_Data$Calories)
+class(SBUX_Data$Sugars)
+class(SBUX_Data$Total_Fat)
+class(SBUX_Data$Trans_Fat)
+class(SBUX_Data$Saturated_Fat)
+class(SBUX_Data$Fibre)
+class(SBUX_Data$Caffeine)
+
+```
+
+Since most of the class are Null and one of them is character let's change the classes to numeric.
+
+```{r}
+SBUX_Data$Total_Fat<-SBUX_Data$Total.Fat..g.
+SBUX_Data$Trans_Fat<-SBUX_Data$Trans.Fat..g.
+SBUX_Data$Saturated_Fat<-SBUX_Data$Saturated.Fat..g.
+SBUX_Data$Fibre<-SBUX_Data$Dietary.Fibre..g.
+SBUX_Data$Sugars<-SBUX_Data$Sugars..g.
+SBUX_Data$Caffeine<-SBUX_Data$Caffeine..mg.
+
+
+SBUX_Data$Total.Fat..g.<-NULL
+SBUX_Data$Trans.Fat..g.<-NULL
+SBUX_Data$Saturated.Fat..g.<-NULL
+SBUX_Data$Dietary.Fibre..g.<-NULL
+SBUX_Data$Sugars..g.<-NULL
+SBUX_Data$Caffeine..mg.<-NULL
+dim(SBUX_Data)
+```
+Verifying the class again 
+
+```{r}
+class(SBUX_Data$Calories)
+class(SBUX_Data$Sugars)
+class(SBUX_Data$Total_Fat)
+class(SBUX_Data$Trans_Fat)
+class(SBUX_Data$Saturated_Fat)
+class(SBUX_Data$Fibre)
+class(SBUX_Data$Caffeine)
+```
+Now changing the character classes.
+
+```{r}
+SBUX_Data$Total_Fat <- as.numeric(SBUX_Data$Total_Fat)
+SBUX_Data$Caffeine <- as.numeric(SBUX_Data$Caffeine)
+
+class(SBUX_Data$Total_Fat)
+class(SBUX_Data$Caffeine)
+```
+So far, there was success for all typecasts except for the character classes. To notice here is that there is coercion, So checking the observation now which has NA.
+
+```{r}
+which(is.na(SBUX_Data$Total_Fat))
+which(is.na(SBUX_Data$Caffeine))
+```
+
+Now, I will change the observation from NA to 0.
+
+```{r}
+SBUX_Data$Total_Fat[is.na(SBUX_Data$Total_Fat)] <- 0
+SBUX_Data$Caffeine[is.na(SBUX_Data$Caffeine)] <- 0
+```
+
+Final Check ! 
+```{r}
+class(SBUX_Data$Total_Fat)
+class(SBUX_Data$Caffeine)
+```
+Wohooo! Since we have sorted all the classes now lets just check if there are any missing observations!
+
+```{r}
+SBUX_Data <- SBUX_Data[-c(103, 104, 105,106), ]
+dim(SBUX_Data)
+```
+
+```{r}
+plot(SBUX_Data)
+```
+
+From the plot we notice that there is potential correlation between a few variables. Lets check out how strong the correlation is!
+
+
+```{r}
+cor(SBUX_Data$Calories, SBUX_Data$Sugars)
+cor(SBUX_Data$Calories, SBUX_Data$Total_Fat)
+cor(SBUX_Data$Total_Fat, SBUX_Data$Sugars)
+cor(SBUX_Data$Total_Fat, SBUX_Data$Trans_Fat)
+cor(SBUX_Data$Calories, SBUX_Data$Fibre)
+cor(SBUX_Data$Trans_Fat, SBUX_Data$Caffeine)
+
+```
+There is strong correlation between sugar and calories, total fat and trans fat. Now lets plot the correlation.
+
+# Sugars vs Calories
+
+```{r}
+plot(SBUX_Data$Calories,SBUX_Data$Sugars, xlab = "Calories", ylab = "Sugars", main = "Sugars vs Calories")
+abline(lm(Sugars~Calories, SBUX_Data), col = "red")
+```
+Trans fat vs Total fat 
+
+```{r}
+plot(SBUX_Data$Total_Fat,SBUX_Data$Trans_Fat, xlab = "Total Fat", ylab = "Trans Fat", main = "Total Fat vs Trans Fat")
+abline(lm(Trans_Fat~Total_Fat, SBUX_Data), col = "blue")
+```
+
+
+# CHECK LINEAR MODEL 
+
+Now, we are looking to see what model best explains the variations in sugar content for items on the Starbucks Drink Menu.
+
+So the assumptions will be,
+
+1. Check for constant variance of error 
+2. Normality 
+3. Independence of errors
+
+Let's check if our model satisfies these assumptions!
+
+
+```{r}
+# Assumption 1, first we will check for interaction
+L1 <- lm(Sugars~Caffeine+Total_Fat+Fibre+Calories+Saturated_Fat+Trans_Fat, SBUX_Data)
+summary(L1)
+
+```
+Here we see that saturated fat, Caffeine and trans fat are not quite good predictors, so lets leave them out.
+
+```{r}
+L2 <- lm(Sugars~Total_Fat+Fibre+Calories, SBUX_Data)
+summary(L2)
+```
+
+Although our $$ {R}^2$$ value reduced very little but we know that saturated fat and trans fat were not quite useful in our model! Now looking at the diagnostics to make sure our assumptions are met.
+
+```{r}
+plot(L2, which = 1)
+```
+
+Our first assumption of constant variance is met as there is no definite pattern and the variance looks constant (although it is never constant in real life!). 
+
+
+```{r}
+plot(L2, which = 2)
+```
+Our second assumption of normality is also met as almost all the values fall on the line. There are a few outliers but that can be ignored for the assumption.
+
+```{r}
+plot(L2, which = 3)
+```
+To note here that observation 62, 214 and 14 are the outliers!
+Let's check why are they the outliers!
+
+```{r}
+print(SBUX_Data[c(62,214,14),])
+```
+As we saw since these observations have zero fbre and high calories which is why they were the outliers. Since these outliers are not bad I will not remove them from the observation!
+
+```{r}
+plot(L2, which = 5)
+```
+There is no point with high leverage but there are points with low leverage which are 84, 216, 217. There is no chance of an influential point right here! Saved us some extra work!
+
+# Checking for possible interactions 
+
+Although our model looks pretty good now but is there anyway we can improvise it! Interactions might save us but who knows!
+
+Looking at the plots earlier we can deduce that there is a possibility for a lot of interactions, but will they be quite useful?
+
+
+```{r}
+# Possible interactions between independent variables Fibre, Total fat and Calories
+
+inter <- lm(Sugars~Calories*Total_Fat+Fibre*Calories+Fibre*Total_Fat, SBUX_Data)
+summary(inter)
+```
+
+There is a slight interaction between total fat and Fibre. But I assume it is not very useful for the model as there is no large dependency on each other! Lets plot the interaction.
+
+```{r}
+library(sjmisc)
+library(sjPlot)
+fit <- lm(Sugars ~ Fibre * Total_Fat, data = SBUX_Data)
+
+plot_model(fit, type = "pred", terms = c("Fibre", "Total_Fat"))
+```
+
+Here we can note that the interaction does exist but it is not very useful as the dependency of Fibre on Total_Fat is not quite large.
+
+So I will not be including any interactions in the model fit. In addition there is no requirement for transformation as there is no issue with the dataset and our assumptions of linearity have been satisfied!
+
+Then finally we have our model fit which has 3 predictor variables Total Fat, Fibre and Calories. But one last thing, in model 2 the intercept is -3.3 which does not make sense as sugar variation cannot be negative! So lets look at the model without the intercept.
+
+```{r}
+L2_intercept <- lm(Sugars~Fibre+Calories+Total_Fat-1, SBUX_Data)
+summary(L2_intercept)
+```
+Now this looks like a good model! Therefore the model 2 is the best fit for the data to represent the variation of Sugar content in Starbucks drinks!
+
+$$    
+Sugars = {0.22}*\text{Calories} -{2.45}*\text{Fibre}-{2.6}*\text{Total Fat}
+$$
